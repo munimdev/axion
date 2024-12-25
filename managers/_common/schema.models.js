@@ -1,4 +1,4 @@
-const emojis = require('../../public/emojis.data.json');
+const emojis = require("../../public/emojis.data.json")
 
 module.exports = {
     id: {
@@ -7,94 +7,94 @@ module.exports = {
         length: { min: 1, max: 50 },
     },
     username: {
-        path: 'username',
-        type: 'string',
-        length: {min: 3, max: 20},
-        custom: 'username',
+        path: "username",
+        type: "string",
+        length: { min: 3, max: 20 },
+        custom: "username",
     },
     password: {
-        path: 'password',
-        type: 'string',
-        length: {min: 8, max: 100},
+        path: "password",
+        type: "string",
+        length: { min: 8, max: 100 },
     },
     title: {
-        path: 'title',
-        type: 'string',
-        length: {min: 3, max: 300}
+        path: "title",
+        type: "string",
+        length: { min: 3, max: 300 },
     },
     label: {
-        path: 'label',
-        type: 'string',
-        length: {min: 3, max: 100}
+        path: "label",
+        type: "string",
+        length: { min: 3, max: 100 },
     },
     shortDesc: {
-        path: 'desc',
-        type: 'string',
-        length: {min:3, max: 300}
+        path: "desc",
+        type: "string",
+        length: { min: 3, max: 300 },
     },
     longDesc: {
-        path: 'desc',
-        type: 'string',
-        length: {min:3, max: 2000}
+        path: "desc",
+        type: "string",
+        length: { min: 3, max: 2000 },
     },
     url: {
-        path: 'url',
-        type: 'string',
-        length: {min: 9, max: 300},
+        path: "url",
+        type: "string",
+        length: { min: 9, max: 300 },
     },
     emoji: {
-        path: 'emoji',
-        type: 'Array',
+        path: "emoji",
+        type: "Array",
         items: {
-            type: 'string',
-            length: {min: 1, max: 10},
+            type: "string",
+            length: { min: 1, max: 10 },
             oneOf: emojis.value,
-        }
+        },
     },
     price: {
-        path: 'price',
-        type: 'number',
+        path: "price",
+        type: "number",
     },
     avatar: {
-        path: 'avatar',
-        type: 'string',
-        length: {min: 8, max: 100},
+        path: "avatar",
+        type: "string",
+        length: { min: 8, max: 100 },
     },
     text: {
-        type: 'String',
-        length: {min: 3, max:15},
+        type: "String",
+        length: { min: 3, max: 15 },
     },
     longText: {
-        type: 'String',
-        length: {min: 3, max:250},
+        type: "String",
+        length: { min: 3, max: 250 },
     },
     paragraph: {
-        type: 'String',
-        length: {min: 3, max:10000},
+        type: "String",
+        length: { min: 3, max: 10000 },
     },
     phone: {
-        type: 'String',
+        type: "String",
         length: 13,
     },
     email: {
-        type: 'String',
+        type: "String",
         regex: /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/,
     },
     number: {
-        type: 'Number',
-        length: {min: 1, max:6},
+        type: "Number",
+        length: { min: 1, max: 6 },
     },
     arrayOfStrings: {
-        type: 'Array',
+        type: "Array",
         items: {
-            type: 'String',
-            length: { min: 3, max: 100}
-        }
+            type: "String",
+            length: { min: 3, max: 100 },
+        },
     },
     obj: {
-        type: 'Object',
+        type: "Object",
     },
     bool: {
-        type: 'Boolean',
+        type: "Boolean",
     },
 }

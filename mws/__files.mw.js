@@ -1,12 +1,11 @@
-module.exports = ({ meta, config, managers }) =>{
-    return async ({req, res, next})=>{
-
+module.exports = ({ meta, config, managers }) => {
+    return async ({ req, res, next }) => {
         try {
-            await managers.fm.upload(req, res);
-        } catch(err){
-            console.log('Erorr', err);
+            await managers.fm.upload(req, res)
+        } catch (err) {
+            console.log("Erorr", err)
         }
-    
-        next(req.files);
+
+        next(req.files)
     }
 }

@@ -1,16 +1,16 @@
 module.exports = [
     {
-        id: 'funny',
+        id: "funny",
         label: {
-            ar: 'مضحك',
-            en: 'Funny'
-        }
+            ar: "مضحك",
+            en: "Funny",
+        },
     },
     {
-        id: 'health',
+        id: "health",
         label: {
-            ar: 'صحة',
-            en: 'Health'
-        }
+            ar: "صحة",
+            en: "Health",
+        },
     },
 ]
