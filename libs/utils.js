@@ -11,8 +11,8 @@ const slugify = (text)=>{
     .trim()                         // Remove whitespace from both sides of a string
     .replace(/\s+/g, '-')           // Replace spaces with -
     .replace(/&/g, '-y-')           // Replace & with 'and'
-    .replace(/[^\w\-]+/g, '')       // Remove all non-word chars
-    .replace(/\-\-+/g, '-');        // Replace multiple - with single -
+    .replace(/[^\w-]+/g, "")        // Remove all non-word chars
+    .replace(/--+/g, "-");          // Replace multiple - with single -
 }
 
 
@@ -27,17 +27,17 @@ return n !== Infinity && String(n) === str && n >= 0;
 }
 
 /**
-* 
-* @param {*} path 'a.b.c'
-* @param {*} obj an object to extract value of 
-*/
+ *
+ * @param {*} path 'a.b.c'
+ * @param {*} obj an object to extract value of
+ */
 const getDeepValue = (path, obj) => {
-for (var i = 0, path = path.split('.'), len = path.length; i < len; i++) {
-    var level = obj[path[i]];
-    if (!level) return null;
-    obj = level;
-};
-return obj;
+    for (var i = 0, pathParts = path.split("."), len = pathParts.length; i < len; i++) {
+        var level = obj[pathParts[i]]
+        if (!level) return null
+        obj = level
+    }
+    return obj
 }
 
 /**
@@ -80,26 +80,26 @@ const inverseObj = (obj)=>{
 }
 
 
-const flattenObject =(ob, marker)=> {
-    if(!marker)marker=".";
-    var toReturn = {};
+const flattenObject = (ob, marker) => {
+    if (!marker) marker = "."
+    var toReturn = {}
     for (var i in ob) {
-        if (!ob.hasOwnProperty(i)) continue;
-        if ((typeof ob[i]) == 'object' && ob[i] !== null) {
-          if(Array.isArray(ob[i])){
-            toReturn[i] = ob[i];
-          } else {
-            var flatObject = flattenObject(ob[i], marker);
-            for (var x in flatObject) {
-                if (!flatObject.hasOwnProperty(x)) continue;
-                toReturn[i + marker + x] = flatObject[x];
+        if (!Object.prototype.hasOwnProperty.call(ob, i)) continue
+        if (typeof ob[i] == "object" && ob[i] !== null) {
+            if (Array.isArray(ob[i])) {
+                toReturn[i] = ob[i]
+            } else {
+                var flatObject = flattenObject(ob[i], marker)
+                for (var x in flatObject) {
+                    if (!Object.prototype.hasOwnProperty.call(flatObject, x)) continue
+                    toReturn[i + marker + x] = flatObject[x]
+                }
             }
-          }
         } else {
-            toReturn[i] = ob[i];
+            toReturn[i] = ob[i]
         }
     }
-    return toReturn;
+    return toReturn
 }
 
 const arrayToObj = (arr)=>{
@@ -117,21 +117,22 @@ const hrTime = ()=>{
     return Number(process.hrtime.bigint());
 }
 
-_regExpEscape = (s) => {
-    return s.replace(/[|\\{}()[\]^$+*?.]/g, '\\$&');
-  }
-_wildcardToRegExp = (s) => {
-    return new RegExp('^' + s.split(/\*+/).map(_regExpEscape).join('.*') + '$');
+const regExpEscape = (s) => {
+    return s.replace(/[|\\{}()[\]^$+*?.]/g, "\\$&")
+}
+
+const wildcardToRegExp = (s) => {
+    return new RegExp("^" + s.split(/\*+/).map(regExpEscape).join(".*") + "$")
 }
 
 const match = (str, model) => {
-    return _wildcardToRegExp(model).test(str);
+    return wildcardToRegExp(model).test(str)
 }
 
-const isChance = (max)=>{
-    let min = 0;
-    let value = Math.floor(Math.random() * (max - min + 1) + min);
-    return min == value; 
+const isChance = (max) => {
+    let min = 0
+    let value = Math.floor(Math.random() * (max - min + 1) + min)
+    return min == value
 }
 
 module.exports = {
