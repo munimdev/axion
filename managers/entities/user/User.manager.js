@@ -1,4 +1,4 @@
-module.exports = class User {
+module.exports = class UserManager {
     constructor({ utils, cache, config, cortex, managers, validators, mongomodels } = {}) {
         this.config = config
         this.cortex = cortex

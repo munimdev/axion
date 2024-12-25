@@ -6,12 +6,14 @@ const ResponseDispatcher = require("../managers/response_dispatcher/ResponseDisp
 const VirtualStack = require("../managers/virtual_stack/VirtualStack.manager")
 const ValidatorsLoader = require("./ValidatorsLoader")
 const ResourceMeshLoader = require("./ResourceMeshLoader")
+const MongoLoader = require("./MongoLoader")
 const utils = require("../libs/utils")
 
 const systemArch = require("../static_arch/main.system")
 const TokenManager = require("../managers/token/Token.manager")
 const SharkFin = require("../managers/shark_fin/SharkFin.manager")
 const TimeMachine = require("../managers/time_machine/TimeMachine.manager")
+const UserManager = require("../managers/entities/user/User.manager")
 
 /**
  * load sharable modules
@@ -34,7 +36,7 @@ module.exports = class ManagersLoader {
             aeon,
             managers: this.managers,
             validators: this.validators,
-            // mongomodels: this.mongomodels,
+            mongomodels: this.mongomodels,
             resourceNodes: this.resourceNodes,
         }
     }
@@ -45,11 +47,11 @@ module.exports = class ManagersLoader {
             customValidators: require("../managers/_common/schema.validators"),
         })
         const resourceMeshLoader = new ResourceMeshLoader({})
-        // const mongoLoader      = new MongoLoader({ schemaExtension: "mongoModel.js" });
+        const mongoLoader = new MongoLoader({ schemaExtension: "mongoModel.js" })
 
         this.validators = validatorsLoader.load()
         this.resourceNodes = resourceMeshLoader.load()
-        // this.mongomodels          = mongoLoader.load();
+        this.mongomodels = mongoLoader.load()
     }
 
     load() {
@@ -63,6 +65,7 @@ module.exports = class ManagersLoader {
         this.managers.shark = new SharkFin({ ...this.injectable, layers, actions })
         this.managers.timeMachine = new TimeMachine(this.injectable)
         this.managers.token = new TokenManager(this.injectable)
+        this.managers.user = new UserManager(this.injectable)
         /*************************************************************************************************/
         this.managers.mwsExec = new VirtualStack({ ...{ preStack: [/* '__token', */ "__device"] }, ...this.injectable })
         this.managers.userApi = new ApiHandler({ ...this.injectable, ...{ prop: "httpExposed" } })
