@@ -1,7 +1,6 @@
 const MiddlewaresLoader = require("./MiddlewaresLoader")
 const ApiHandler = require("../managers/api/Api.manager")
 const LiveDB = require("../managers/live_db/LiveDb.manager")
-const UserServer = require("../managers/http/UserServer.manager")
 const ResponseDispatcher = require("../managers/response_dispatcher/ResponseDispatcher.manager")
 const VirtualStack = require("../managers/virtual_stack/VirtualStack.manager")
 const ValidatorsLoader = require("./ValidatorsLoader")
@@ -13,10 +12,16 @@ const systemArch = require("../static_arch/main.system")
 const TokenManager = require("../managers/token/Token.manager")
 const SharkFin = require("../managers/shark_fin/SharkFin.manager")
 const TimeMachine = require("../managers/time_machine/TimeMachine.manager")
+
+// Custom Managers
 const UserManager = require("../managers/entities/user/User.manager")
 const PermissionManager = require("../managers/permissions/Permission.manager")
 const SchoolManager = require("../managers/entities/school/School.manager")
 const ClassroomManager = require("../managers/entities/classroom/Classroom.manager")
+const StudentManager = require("../managers/entities/student/Student.manager")
+
+//Servers
+const UserServer = require("../managers/http/UserServer.manager")
 
 /**
  * load sharable modules
@@ -72,6 +77,7 @@ module.exports = class ManagersLoader {
         this.managers.user = new UserManager(this.injectable)
         this.managers.school = new SchoolManager(this.injectable)
         this.managers.classroom = new ClassroomManager(this.injectable)
+        this.managers.student = new StudentManager(this.injectable)
         /*************************************************************************************************/
         this.managers.mwsExec = new VirtualStack({ ...{ preStack: ["__device", "__role"] }, ...this.injectable })
         this.managers.userApi = new ApiHandler({ ...this.injectable, ...{ prop: "httpExposed" } })

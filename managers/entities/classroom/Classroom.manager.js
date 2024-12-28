@@ -201,11 +201,11 @@ module.exports = class ClassroomManager {
         return { classroom }
     }
 
-    async listSchoolClassrooms({ __role, schoolId, res }) {
+    async listSchoolClassrooms({ __role, id, res }) {
         // Get all classrooms for a school
         const classrooms = await this.oyster.call("nav_relation", {
             relation: "_classrooms",
-            _id: `school:${schoolId}`,
+            _id: `school:${id}`,
             withScores: true
         })
 

@@ -1,7 +1,7 @@
 module.exports = {
     createClassroom: [
         {
-            model: "className",
+            model: "shortText",
             path: "name",
             required: true,
         },
@@ -26,7 +26,7 @@ module.exports = {
             required: true,
         },
         {
-            model: "resources",
+            model: "arrayOfStrings",
             path: "resources",
             default: [],
         },
@@ -38,7 +38,12 @@ module.exports = {
     ],
     updateClassroom: [
         {
-            model: "className",
+            model: "id",
+            path: "id",
+            required: true,
+        },
+        {
+            model: "shortText",
             path: "name",
         },
         {
@@ -58,7 +63,7 @@ module.exports = {
             path: "academicYear",
         },
         {
-            model: "resources",
+            model: "arrayOfStrings",
             path: "resources",
         },
     ],
@@ -70,6 +75,13 @@ module.exports = {
         },
     ],
     deleteClassroom: [
+        {
+            model: "id",
+            path: "id",
+            required: true,
+        },
+    ],
+    listClassroomResources: [
         {
             model: "id",
             path: "id",
@@ -100,4 +112,4 @@ module.exports = {
             required: true,
         },
     ],
-} 
+}

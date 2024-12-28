@@ -64,6 +64,10 @@ module.exports = {
         type: "String",
         length: { min: 3, max: 15 },
     },
+    shortText: {
+        type: "String",
+        length: { min: 3, max: 50 },
+    },
     longText: {
         type: "String",
         length: { min: 3, max: 250 },
@@ -105,14 +109,10 @@ module.exports = {
         type: "String",
         length: { min: 5, max: 200 },
     },
-    className: {
-        type: "String",
-        length: { min: 2, max: 50 },
-    },
     classCapacity: {
         type: "Number",
         min: 1,
-        max: 100,
+        max: 50,
     },
     grade: {
         type: "String",
@@ -127,11 +127,16 @@ module.exports = {
         type: "String",
         regex: /^\d{4}-\d{4}$/,  // Format: 2023-2024
     },
-    resources: {
-        type: "Array",
-        items: {
-            type: "String",
-            length: { min: 2, max: 50 },
-        },
+    date: {
+        type: "String",
+        regex: /^\d{4}-\d{2}-\d{2}$/,  // Format: YYYY-MM-DD
+    },
+    gender: {
+        type: "String",
+        regex: /^(male|female)$/,
+    },
+    bloodGroup: {
+        type: "String",
+        regex: /^(A|B|AB|O)[+-]$/,
     },
 }
