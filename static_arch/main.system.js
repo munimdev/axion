@@ -6,28 +6,24 @@ const layers = {
         _private: { anyoneCan: "none" },
         _store: { anyoneCan: "read", noOneCan: "create" },
 
-        post: {
-            _default: { inherit: true },
-            _public: { inherit: true },
+        school: {
+            _default: { adminCan: "read", superAdminCan: "update" },
+            _public: { anyoneCan: "none" },
             _private: { inherit: true },
+            _store: { inherit: true },
 
-            comment: {
-                _default: { inherit: true },
-                reply: {
-                    _default: { inherit: true },
-                    vote: {
-                        _default: { anyoneCan: "create" },
-                    },
+            class: {
+                _default: { adminCan: "update", superAdminCan: "read" },
+                _public: { inherit: true },
+                _private: { inherit: true },
+                _store: { inherit: true },
+
+                student: {
+                    _default: { adminCan: "update", superAdminCan: "none" },
+                    _public: { inherit: true },
+                    _private: { inherit: true },
+                    _store: { inherit: true },
                 },
-                vote: {
-                    _default: { anyoneCan: "create" },
-                },
-            },
-            vote: {
-                _default: { anyoneCan: "create" },
-            },
-            sticker: {
-                _default: { inherit: true },
             },
         },
     },
@@ -40,9 +36,8 @@ const actions = {
     create: 3,
     audit: 4,
     config: 5,
+    delete: 6,
+    update: 7,
 }
 
-module.exports = {
-    layers,
-    actions,
-}
+module.exports = { layers, actions }
