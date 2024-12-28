@@ -99,6 +99,10 @@ module.exports = {
     },
     role: {
         type: "String",
-        regex: /^(admin|user|superadmin)$/,
+        regex: /^(superadmin|schoolAdmin|user)$/,
+    },
+    address: {
+        type: "String",
+        length: { min: 5, max: 200 },
     },
 }
