@@ -105,4 +105,33 @@ module.exports = {
         type: "String",
         length: { min: 5, max: 200 },
     },
+    className: {
+        type: "String",
+        length: { min: 2, max: 50 },
+    },
+    classCapacity: {
+        type: "Number",
+        min: 1,
+        max: 100,
+    },
+    grade: {
+        type: "String",
+        regex: /^([1-9]|1[0-2])$/,  // Grades 1-12
+    },
+    section: {
+        type: "String",
+        length: { min: 1, max: 2 },
+        regex: /^[A-Z]$/,  // Sections like A, B, C
+    },
+    academicYear: {
+        type: "String",
+        regex: /^\d{4}-\d{4}$/,  // Format: 2023-2024
+    },
+    resources: {
+        type: "Array",
+        items: {
+            type: "String",
+            length: { min: 2, max: 50 },
+        },
+    },
 }
