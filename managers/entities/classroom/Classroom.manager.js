@@ -7,41 +7,64 @@ module.exports = class ClassroomManager {
         this.cortex = cortex
         this.validators = validators
         this.oyster = oyster
-        this.permissionManager = managers.permission
+        this.shark = managers.shark
         this.responseDispatcher = managers.responseDispatcher
         this.classroomPrefix = "classroom"
-        this.schoolManager = managers.school
 
         // Exposed HTTP endpoints
         this.httpExposed = [
             "createClassroom",
-            "updateClassroom",
-            "deleteClassroom",
-            "getClassroom",
-            "listClassrooms",
-            "addResource",
-            "removeResource",
-            "listSchoolClassrooms"
+            "patch=updateClassroom",
+            "delete=deleteClassroom",
+            "get=getClassroom",
+            "get=listClassrooms",
+            "post=addResource",
+            "delete=removeResource",
+            "get=listSchoolClassrooms"
         ]
     }
 
-    async _verifySchoolAdmin({ userId, schoolId }) {
-        const admins = await this.oyster.call("nav_relation", {
-            relation: "_admins",
-            _id: `school:${schoolId}`,
-            withScores: true,
-        })
-        return admins[`user:${userId}`] !== undefined
+    async _getUser({ userId }) {
+        const user = await this.oyster.call("get_block", `user:${userId}`)
+        if (!user || this.utils.isEmptyObject(user)) {
+            return { error: "Invalid Token" }
+        }
+        return user
     }
 
-    async createClassroom({ __role, name, capacity, grade, section, academicYear, resources, schoolId, res }) {
-        // Verify if user is school admin for this school
-        const isSchoolAdmin = await this._verifySchoolAdmin({ userId: __role, schoolId })
-        if (!isSchoolAdmin) {
+    async _validatePermission({ userId, action, nodeId = "board.school.class" }) {
+        const user = await this._getUser({ userId })
+        if (user.error) return user
+
+        if (!user.role) {
+            return { error: "User role not found" }
+        }
+
+        const canDoAction = await this.shark.isGranted({
+            layer: "board.school.class",
+            action,
+            userId,
+            nodeId,
+            role: user.role,
+        })
+        return { error: canDoAction ? undefined : "Permission denied" }
+    }
+
+    async createClassroom({ __token, name, capacity, grade, section, academicYear, resources, schoolId, res }) {
+        const { userId } = __token
+
+        // Permission check
+        const canCreateClassroom = await this._validatePermission({
+            userId,
+            action: "create",
+            nodeId: `board.school.${schoolId}.classroom`
+        })
+
+        if (canCreateClassroom.error) {
             this.responseDispatcher.dispatch(res, {
                 ok: false,
                 code: 403,
-                message: "Only school admin can create classrooms"
+                message: canCreateClassroom.error
             })
             return { selfHandleResponse: true }
         }
@@ -58,10 +81,21 @@ module.exports = class ClassroomManager {
         })
         if (validationResult) return validationResult
 
+        // Check if classroom exists
+        const existingClassroom = await this.oyster.call("get_block", `${this.classroomPrefix}:${name}`)
+        if (existingClassroom && !this.utils.isEmptyObject(existingClassroom)) {
+            this.responseDispatcher.dispatch(res, {
+                ok: false,
+                code: 409,
+                message: "Classroom already exists with this name"
+            })
+            return { selfHandleResponse: true }
+        }
+
         // Create classroom
         const classroomId = nanoid()
         const classroom = await this.oyster.call("add_block", {
-            _id: `${this.classroomPrefix}:${classroomId}`,
+            _id: `${this.classroomPrefix}:${name}`,
             _label: this.classroomPrefix,
             classroomId,
             name,
@@ -72,7 +106,7 @@ module.exports = class ClassroomManager {
             resources: resources || [],
             schoolId,
             createdAt: Date.now(),
-            createdBy: __role
+            createdBy: userId
         })
 
         if (classroom.error) {
@@ -89,15 +123,17 @@ module.exports = class ClassroomManager {
         await this.oyster.call("update_relations", {
             _id: `school:${schoolId}`,
             add: {
-                _classrooms: [`${this.classroomPrefix}:${classroomId}`]
+                _classrooms: [`${this.classroomPrefix}:${name}`]
             }
         })
 
         return { classroom }
     }
 
-    async updateClassroom({ __role, id, name, capacity, grade, section, academicYear, resources, res }) {
-        // Get classroom to check school
+    async updateClassroom({ __token, id, name, capacity, grade, section, academicYear, res }) {
+        const { userId } = __token
+
+        // Get classroom first to check school
         const classroom = await this.oyster.call("get_block", `${this.classroomPrefix}:${id}`)
         if (!classroom || this.utils.isEmptyObject(classroom)) {
             this.responseDispatcher.dispatch(res, {
@@ -108,13 +144,18 @@ module.exports = class ClassroomManager {
             return { selfHandleResponse: true }
         }
 
-        // Verify if user is school admin for this classroom's school
-        const isSchoolAdmin = await this._verifySchoolAdmin({ userId: __role, schoolId: classroom.schoolId })
-        if (!isSchoolAdmin) {
+        // Permission check
+        const canUpdateClassroom = await this._validatePermission({
+            userId,
+            action: "update",
+            nodeId: `board.school.${classroom.schoolId}.classroom.${id}`
+        })
+
+        if (canUpdateClassroom.error) {
             this.responseDispatcher.dispatch(res, {
                 ok: false,
                 code: 403,
-                message: "Only school admin can update classrooms"
+                message: canUpdateClassroom.error
             })
             return { selfHandleResponse: true }
         }
@@ -125,21 +166,19 @@ module.exports = class ClassroomManager {
             capacity,
             grade,
             section,
-            academicYear,
-            resources
+            academicYear
         })
         if (validationResult) return validationResult
 
-        // Update classroom
+        // Update classroom fields
         const updates = {}
         if (name) updates.name = name
         if (capacity) updates.capacity = capacity
         if (grade) updates.grade = grade
         if (section) updates.section = section
         if (academicYear) updates.academicYear = academicYear
-        if (resources) updates.resources = resources
         updates.updatedAt = Date.now()
-        updates.updatedBy = __role
+        updates.updatedBy = userId
 
         const updatedClassroom = await this.oyster.call("update_block", {
             _id: `${this.classroomPrefix}:${id}`,
@@ -149,8 +188,10 @@ module.exports = class ClassroomManager {
         return { classroom: updatedClassroom }
     }
 
-    async deleteClassroom({ __role, id, res }) {
-        // Get classroom to check school
+    async deleteClassroom({ __token, id, res }) {
+        const { userId } = __token
+
+        // Get classroom first to check school
         const classroom = await this.oyster.call("get_block", `${this.classroomPrefix}:${id}`)
         if (!classroom || this.utils.isEmptyObject(classroom)) {
             this.responseDispatcher.dispatch(res, {
@@ -161,13 +202,18 @@ module.exports = class ClassroomManager {
             return { selfHandleResponse: true }
         }
 
-        // Verify if user is school admin for this classroom's school
-        const isSchoolAdmin = await this._verifySchoolAdmin({ userId: __role, schoolId: classroom.schoolId })
-        if (!isSchoolAdmin) {
+        // Permission check
+        const canDeleteClassroom = await this._validatePermission({
+            userId,
+            action: "delete",
+            nodeId: `board.school.${classroom.schoolId}.classroom.${id}`
+        })
+
+        if (canDeleteClassroom.error) {
             this.responseDispatcher.dispatch(res, {
                 ok: false,
                 code: 403,
-                message: "Only school admin can delete classrooms"
+                message: canDeleteClassroom.error
             })
             return { selfHandleResponse: true }
         }
@@ -186,8 +232,10 @@ module.exports = class ClassroomManager {
         return { message: "Classroom deleted successfully" }
     }
 
-    async getClassroom({ __role, id, res }) {
-        // Get classroom
+    async getClassroom({ __token, id, res }) {
+        const { userId } = __token
+
+        // Get classroom first to check school
         const classroom = await this.oyster.call("get_block", `${this.classroomPrefix}:${id}`)
         if (!classroom || this.utils.isEmptyObject(classroom)) {
             this.responseDispatcher.dispatch(res, {
@@ -198,14 +246,77 @@ module.exports = class ClassroomManager {
             return { selfHandleResponse: true }
         }
 
+        // Permission check
+        const canReadClassroom = await this._validatePermission({
+            userId,
+            action: "read",
+            nodeId: `board.school.${classroom.schoolId}.classroom.${id}`
+        })
+
+        if (canReadClassroom.error) {
+            this.responseDispatcher.dispatch(res, {
+                ok: false,
+                code: 403,
+                message: canReadClassroom.error
+            })
+            return { selfHandleResponse: true }
+        }
+
         return { classroom }
     }
 
-    async listSchoolClassrooms({ __role, id, res }) {
-        // Get all classrooms for a school
+    async listClassrooms({ __token, schoolId, res }) {
+        const { userId } = __token
+
+        // Permission check
+        const canReadClassrooms = await this._validatePermission({
+            userId,
+            action: "read",
+            nodeId: `board.school.${schoolId}.classroom`
+        })
+
+        if (canReadClassrooms.error) {
+            this.responseDispatcher.dispatch(res, {
+                ok: false,
+                code: 403,
+                message: canReadClassrooms.error
+            })
+            return { selfHandleResponse: true }
+        }
+
+        const classrooms = await this.oyster.call("get_blocks", {
+            _label: this.classroomPrefix,
+            filter: {
+                schoolId
+            }
+        })
+
+        return { classrooms }
+    }
+
+    async listSchoolClassrooms({ __token, schoolId, res }) {
+        const { userId } = __token
+
+        // Permission check
+        const canReadClassrooms = await this._validatePermission({
+            userId,
+            action: "read",
+            nodeId: `board.school.${schoolId}.classroom`
+        })
+
+        if (canReadClassrooms.error) {
+            this.responseDispatcher.dispatch(res, {
+                ok: false,
+                code: 403,
+                message: canReadClassrooms.error
+            })
+            return { selfHandleResponse: true }
+        }
+
+        // Get all classrooms for a school using relations
         const classrooms = await this.oyster.call("nav_relation", {
             relation: "_classrooms",
-            _id: `school:${id}`,
+            _id: `school:${schoolId}`,
             withScores: true
         })
 
@@ -219,8 +330,10 @@ module.exports = class ClassroomManager {
         return { classrooms: classroomDetails.filter(c => c !== null) }
     }
 
-    async addResource({ __role, id, resource, res }) {
-        // Get classroom to check school
+    async addResource({ __token, id, resource, res }) {
+        const { userId } = __token
+
+        // Get classroom first to check school
         const classroom = await this.oyster.call("get_block", `${this.classroomPrefix}:${id}`)
         if (!classroom || this.utils.isEmptyObject(classroom)) {
             this.responseDispatcher.dispatch(res, {
@@ -231,13 +344,18 @@ module.exports = class ClassroomManager {
             return { selfHandleResponse: true }
         }
 
-        // Verify if user is school admin for this classroom's school
-        const isSchoolAdmin = await this._verifySchoolAdmin({ userId: __role, schoolId: classroom.schoolId })
-        if (!isSchoolAdmin) {
+        // Permission check
+        const canUpdateClassroom = await this._validatePermission({
+            userId,
+            action: "update",
+            nodeId: `board.school.${classroom.schoolId}.classroom.${id}`
+        })
+
+        if (canUpdateClassroom.error) {
             this.responseDispatcher.dispatch(res, {
                 ok: false,
                 code: 403,
-                message: "Only school admin can manage classroom resources"
+                message: canUpdateClassroom.error
             })
             return { selfHandleResponse: true }
         }
@@ -262,14 +380,16 @@ module.exports = class ClassroomManager {
             _id: `${this.classroomPrefix}:${id}`,
             resources,
             updatedAt: Date.now(),
-            updatedBy: __role
+            updatedBy: userId
         })
 
         return { classroom: updatedClassroom }
     }
 
-    async removeResource({ __role, id, resource, res }) {
-        // Get classroom to check school
+    async removeResource({ __token, id, resource, res }) {
+        const { userId } = __token
+
+        // Get classroom first to check school
         const classroom = await this.oyster.call("get_block", `${this.classroomPrefix}:${id}`)
         if (!classroom || this.utils.isEmptyObject(classroom)) {
             this.responseDispatcher.dispatch(res, {
@@ -280,13 +400,18 @@ module.exports = class ClassroomManager {
             return { selfHandleResponse: true }
         }
 
-        // Verify if user is school admin for this classroom's school
-        const isSchoolAdmin = await this._verifySchoolAdmin({ userId: __role, schoolId: classroom.schoolId })
-        if (!isSchoolAdmin) {
+        // Permission check
+        const canUpdateClassroom = await this._validatePermission({
+            userId,
+            action: "update",
+            nodeId: `board.school.${classroom.schoolId}.classroom.${id}`
+        })
+
+        if (canUpdateClassroom.error) {
             this.responseDispatcher.dispatch(res, {
                 ok: false,
                 code: 403,
-                message: "Only school admin can manage classroom resources"
+                message: canUpdateClassroom.error
             })
             return { selfHandleResponse: true }
         }
@@ -312,7 +437,7 @@ module.exports = class ClassroomManager {
             _id: `${this.classroomPrefix}:${id}`,
             resources,
             updatedAt: Date.now(),
-            updatedBy: __role
+            updatedBy: userId
         })
 
         return { classroom: updatedClassroom }

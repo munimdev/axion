@@ -58,7 +58,7 @@ module.exports = class SharkFin {
     }
 
     addDirectAccess({ userId, nodeId, action }) {
-        this.oyster.call("update_relations", {
+        return this.oyster.call("update_relations", {
             _id: `user:${userId}`,
             set: {
                 _members: [`node:${nodeId}~${this.actions[action]}:!`],
@@ -146,7 +146,7 @@ module.exports = class SharkFin {
         return this.layers
     }
 
-    async isGranted({ layer, variant, userId, nodeId, action, isOwner, childLayer }) {
+    async isGranted({ layer, variant, userId, nodeId, action, isOwner, childLayer, role }) {
         let inqueryActionRank = this._getActionRank({ action, ceil: true })
 
         let curentNodeId = null
@@ -189,6 +189,15 @@ module.exports = class SharkFin {
             /** enable block on resource is another story, because at this point
           we will need to create a block list for the resource itself**/
             if (layerActionRank >= inqueryActionRank) return true
+        }
+        /*******************************USER ACCESS*******************************/
+        if (layerConfig.adminCan && role == "schoolAdmin") {
+            const layerAdminActionRank = this._getActionRank({ action: layerConfig.adminCan })
+            if (layerAdminActionRank >= inqueryActionRank) return true
+        }
+        if (layerConfig.superAdminCan && role == "superadmin") {
+            const layerSuperAdminActionRank = this._getActionRank({ action: layerConfig.superAdminCan })
+            if (layerSuperAdminActionRank >= inqueryActionRank) return true
         }
         /******************************DIRECT ACCESS******************************/
         if (nodeId && userId) {

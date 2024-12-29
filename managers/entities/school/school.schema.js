@@ -1,7 +1,7 @@
 module.exports = {
     createSchool: [
         {
-            model: "text",
+            model: "shortText",
             path: "name",
             required: true,
         },
@@ -23,7 +23,7 @@ module.exports = {
     ],
     updateSchool: [
         {
-            model: "schoolName",
+            model: "shortText",
             path: "name",
         },
         {
@@ -31,12 +31,8 @@ module.exports = {
             path: "address",
         },
         {
-            model: "contactNumber",
-            path: "contactNumber",
-        },
-        {
-            model: "capacity",
-            path: "capacity",
+            model: "phone",
+            path: "phone",
         },
         {
             model: "email",

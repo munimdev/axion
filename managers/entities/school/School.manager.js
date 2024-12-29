@@ -7,28 +7,61 @@ module.exports = class SchoolManager {
         this.cortex = cortex
         this.validators = validators
         this.oyster = oyster
-        this.permissionManager = managers.permission
+        this.shark = managers.shark
         this.responseDispatcher = managers.responseDispatcher
         this.schoolPrefix = "school"
 
         // Exposed HTTP endpoints
         this.httpExposed = [
             "createSchool",
-            "updateSchool",
-            "deleteSchool",
-            "getSchool",
-            "listSchools",
-            "assignSchoolAdmin",
+            "patch=updateSchool",
+            "delete=deleteSchool",
+            "get=getSchool",
+            "get=listSchools",
+            "assignSchoolAdmin"
         ]
     }
 
-    async createSchool({ __role, name, address, phone, email, res }) {
-        // Only superadmin can create schools
-        if (__role !== "superadmin") {
+    async _getUser({ userId }) {
+        const user = await this.oyster.call("get_block", `user:${userId}`)
+        if (!user || this.utils.isEmptyObject(user)) {
+            return { error: "Invalid Token" }
+        }
+        return user
+    }
+
+    async _validatePermission({ userId, action, nodeId = "board.school" }) {
+        const user = await this._getUser({ userId })
+        if (user.error) return user
+
+        if (!user.role) {
+            return { error: "User role not found" }
+        }
+
+        const canDoAction = await this.shark.isGranted({
+            layer: "board.school",
+            action,
+            userId,
+            nodeId,
+            role: user.role,
+        })
+        return { error: canDoAction ? undefined : "Permission denied" }
+    }
+
+    async createSchool({ __token, name, address, phone, email, res }) {
+        const { userId } = __token
+
+        // Permission check
+        const canCreateSchool = await this._validatePermission({
+            userId,
+            action: "create"
+        })
+
+        if (canCreateSchool.error) {
             this.responseDispatcher.dispatch(res, {
                 ok: false,
                 code: 403,
-                message: "Only superadmin can create schools",
+                message: canCreateSchool.error
             })
             return { selfHandleResponse: true }
         }
@@ -38,7 +71,7 @@ module.exports = class SchoolManager {
             name,
             address,
             phone,
-            email,
+            email
         })
         if (validationResult) return validationResult
 
@@ -48,7 +81,7 @@ module.exports = class SchoolManager {
             this.responseDispatcher.dispatch(res, {
                 ok: false,
                 code: 409,
-                message: "School already exists with this email",
+                message: "School already exists with this email"
             })
             return { selfHandleResponse: true }
         }
@@ -64,7 +97,7 @@ module.exports = class SchoolManager {
             phone,
             email,
             createdAt: Date.now(),
-            createdBy: __role,
+            createdBy: userId
         })
 
         if (school.error) {
@@ -72,7 +105,7 @@ module.exports = class SchoolManager {
             this.responseDispatcher.dispatch(res, {
                 ok: false,
                 code: 500,
-                message: "Failed to create school",
+                message: "Failed to create school"
             })
             return { selfHandleResponse: true }
         }
@@ -80,13 +113,21 @@ module.exports = class SchoolManager {
         return { school }
     }
 
-    async updateSchool({ __role, id, name, address, contactNumber, capacity, email, res }) {
-        // Only superadmin can update schools
-        if (__role !== "superadmin") {
+    async updateSchool({ __token, id, name, address, phone, email, res }) {
+        const { userId } = __token
+
+        // Permission check
+        const canUpdateSchool = await this._validatePermission({
+            userId,
+            action: "update",
+            nodeId: `board.school.${id}`
+        })
+
+        if (canUpdateSchool.error) {
             this.responseDispatcher.dispatch(res, {
                 ok: false,
                 code: 403,
-                message: "Only superadmin can update schools",
+                message: canUpdateSchool.error
             })
             return { selfHandleResponse: true }
         }
@@ -95,9 +136,8 @@ module.exports = class SchoolManager {
         const validationResult = await this.validators.school.updateSchool({
             name,
             address,
-            contactNumber,
-            capacity,
-            email,
+            phone,
+            email
         })
         if (validationResult) return validationResult
 
@@ -107,7 +147,7 @@ module.exports = class SchoolManager {
             this.responseDispatcher.dispatch(res, {
                 ok: false,
                 code: 404,
-                message: "School not found",
+                message: "School not found"
             })
             return { selfHandleResponse: true }
         }
@@ -116,34 +156,37 @@ module.exports = class SchoolManager {
         const updates = {}
         if (name) updates.name = name
         if (address) updates.address = address
-        if (contactNumber) updates.contactNumber = contactNumber
-        if (capacity) updates.capacity = capacity
+        if (phone) updates.phone = phone
         if (email) updates.email = email
         updates.updatedAt = Date.now()
-        updates.updatedBy = __role
+        updates.updatedBy = userId
 
         const updatedSchool = await this.oyster.call("update_block", {
             _id: `${this.schoolPrefix}:${id}`,
-            ...updates,
+            ...updates
         })
 
         return { school: updatedSchool }
     }
 
-    async deleteSchool({ __role, id, res }) {
-        // Only superadmin can delete schools
-        if (__role !== "superadmin") {
+    async deleteSchool({ __token, id, res }) {
+        const { userId } = __token
+
+        // Permission check
+        const canDeleteSchool = await this._validatePermission({
+            userId,
+            action: "delete",
+            nodeId: `board.school.${id}`
+        })
+
+        if (canDeleteSchool.error) {
             this.responseDispatcher.dispatch(res, {
                 ok: false,
                 code: 403,
-                message: "Only superadmin can delete schools",
+                message: canDeleteSchool.error
             })
             return { selfHandleResponse: true }
         }
-
-        // Validate input
-        const validationResult = await this.validators.school.deleteSchool({ id })
-        if (validationResult) return validationResult
 
         // Get school
         const school = await this.oyster.call("get_block", `${this.schoolPrefix}:${id}`)
@@ -151,7 +194,7 @@ module.exports = class SchoolManager {
             this.responseDispatcher.dispatch(res, {
                 ok: false,
                 code: 404,
-                message: "School not found",
+                message: "School not found"
             })
             return { selfHandleResponse: true }
         }
@@ -161,16 +204,30 @@ module.exports = class SchoolManager {
 
         // Remove all school relations
         await this.oyster.call("delete_relations", {
-            _id: `${this.schoolPrefix}:${id}`,
+            _id: `${this.schoolPrefix}:${id}`
         })
 
         return { message: "School deleted successfully" }
     }
 
-    async getSchool({ __role, id, res }) {
-        // Validate input
-        const validationResult = await this.validators.school.getSchool({ id })
-        if (validationResult) return validationResult
+    async getSchool({ __token, id, res }) {
+        const { userId } = __token
+
+        // Permission check
+        const canReadSchool = await this._validatePermission({
+            userId,
+            action: "read",
+            nodeId: `board.school.${id}`
+        })
+
+        if (canReadSchool.error) {
+            this.responseDispatcher.dispatch(res, {
+                ok: false,
+                code: 403,
+                message: canReadSchool.error
+            })
+            return { selfHandleResponse: true }
+        }
 
         // Get school
         const school = await this.oyster.call("get_block", `${this.schoolPrefix}:${id}`)
@@ -178,7 +235,7 @@ module.exports = class SchoolManager {
             this.responseDispatcher.dispatch(res, {
                 ok: false,
                 code: 404,
-                message: "School not found",
+                message: "School not found"
             })
             return { selfHandleResponse: true }
         }
@@ -186,21 +243,46 @@ module.exports = class SchoolManager {
         return { school }
     }
 
-    async listSchools({ __role, res }) {
+    async listSchools({ __token, res }) {
+        const { userId } = __token
+
+        // Permission check
+        const canReadSchools = await this._validatePermission({
+            userId,
+            action: "read"
+        })
+
+        if (canReadSchools.error) {
+            this.responseDispatcher.dispatch(res, {
+                ok: false,
+                code: 403,
+                message: canReadSchools.error
+            })
+            return { selfHandleResponse: true }
+        }
+
         const schools = await this.oyster.call("get_blocks", {
-            _label: this.schoolPrefix,
+            _label: this.schoolPrefix
         })
 
         return { schools }
     }
 
-    async assignSchoolAdmin({ __role, schoolId, userId, res }) {
-        // Only superadmin can assign school admins
-        if (__role !== "superadmin") {
+    async assignSchoolAdmin({ __token, schoolId, adminUserId, res }) {
+        const { userId } = __token
+
+        // Permission check
+        const canAssignAdmin = await this._validatePermission({
+            userId,
+            action: "config",
+            nodeId: `board.school.${schoolId}`
+        })
+
+        if (canAssignAdmin.error) {
             this.responseDispatcher.dispatch(res, {
                 ok: false,
                 code: 403,
-                message: "Only superadmin can assign school admins",
+                message: canAssignAdmin.error
             })
             return { selfHandleResponse: true }
         }
@@ -211,21 +293,17 @@ module.exports = class SchoolManager {
             this.responseDispatcher.dispatch(res, {
                 ok: false,
                 code: 404,
-                message: "School not found",
+                message: "School not found"
             })
             return { selfHandleResponse: true }
         }
 
-        // Assign user as school admin
-        await this.oyster.call("update_relations", {
-            _id: `${this.schoolPrefix}:${schoolId}`,
-            set: {
-                _admins: [`user:${userId}`],
-            },
+        // Add direct access for school admin
+        await this.shark.addDirectAccess({
+            userId: adminUserId,
+            nodeId: `board.school.${schoolId}`,
+            action: "update"
         })
-
-        // Update user's role to schoolAdmin
-        await this.permissionManager.assignRole({ userId, role: "schoolAdmin" })
 
         return { message: "School admin assigned successfully" }
     }
