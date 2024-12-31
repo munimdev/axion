@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: school-management-api
+    env: node
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SERVICE_NAME
+        value: school_management
+      - key: USER_PORT
+        value: 5111
+      - key: LONG_TOKEN_SECRET
+        sync: false
+      - key: SHORT_TOKEN_SECRET
+        sync: false
+      - key: NACL_SECRET
+        sync: false
+      - key: OYSTER_PREFIX
+        value: school_
+
+  - type: redis
+    name: school-redis
+    ipAllowList: []
