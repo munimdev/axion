@@ -19,6 +19,16 @@ services:
         sync: false
       - key: OYSTER_PREFIX
         value: school_
+      - key: REDIS_URI
+        fromService:
+          type: redis
+          name: school-redis
+          property: connectionString
+      - key: OYSTER_REDIS
+        fromService:
+          type: redis
+          name: school-redis
+          property: connectionString
 
   - type: redis
     name: school-redis
