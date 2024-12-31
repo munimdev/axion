@@ -1,0 +1,672 @@
+{
+    "info": {
+        "name": "School Management API",
+        "description": "A collection of API endpoints for the School Management System",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "Authentication & Users",
+            "item": [
+                {
+                    "name": "Create User",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"username\": \"johndoe\",\n    \"email\": \"john@example.com\",\n    \"password\": \"securepassword123\",\n    \"role\": \"schoolAdmin\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/user/createUser",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "user", "createUser"]
+                        },
+                        "description": "Creates a new user with specified role"
+                    }
+                },
+                {
+                    "name": "Login User",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"john@example.com\",\n    \"password\": \"securepassword123\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/user/loginUser",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "user", "loginUser"]
+                        },
+                        "description": "Authenticates user and returns tokens"
+                    }
+                },
+                {
+                    "name": "Update User",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"id\": \"{{userId}}\",\n    \"username\": \"johnsmith\",\n    \"email\": \"john.smith@example.com\",\n    \"role\": \"schoolAdmin\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/user/updateUser",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "user", "updateUser"]
+                        },
+                        "description": "Updates user information (Superadmin can update roles)"
+                    }
+                },
+                {
+                    "name": "Delete User",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/user/deleteUser?id={{userId}}",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "user", "deleteUser"],
+                            "query": [
+                                {
+                                    "key": "id",
+                                    "value": "{{userId}}"
+                                }
+                            ]
+                        },
+                        "description": "Deletes a user (Superadmin only)"
+                    }
+                },
+                {
+                    "name": "Get User",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/user/getUser?id={{userId}}",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "user", "getUser"],
+                            "query": [
+                                {
+                                    "key": "id",
+                                    "value": "{{userId}}"
+                                }
+                            ]
+                        },
+                        "description": "Retrieves user details (User can view own details, Superadmin can view any)"
+                    }
+                },
+                {
+                    "name": "Create Short Token",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{longToken}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/token/v1_createShortToken",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "token", "v1_createShortToken"]
+                        },
+                        "description": "Creates a short-lived token from a long token"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Schools",
+            "item": [
+                {
+                    "name": "Create School",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"Example School\",\n    \"address\": \"123 Education St\",\n    \"phone\": \"+1234567890\",\n    \"email\": \"contact@example-school.com\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/school/createSchool",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "school", "createSchool"]
+                        },
+                        "description": "Creates a new school (Superadmin only)"
+                    }
+                },
+                {
+                    "name": "Update School",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"id\": \"{{schoolId}}\",\n    \"name\": \"Updated School Name\",\n    \"address\": \"456 Learning Ave\",\n    \"phone\": \"+1987654321\",\n    \"email\": \"new@example-school.com\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/school/updateSchool",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "school", "updateSchool"]
+                        }
+                    }
+                },
+                {
+                    "name": "Get School",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/school/getSchool?id={{schoolId}}",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "school", "getSchool"],
+                            "query": [
+                                {
+                                    "key": "id",
+                                    "value": "{{schoolId}}"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Delete School",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/school/deleteSchool?id={{schoolId}}",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "school", "deleteSchool"],
+                            "query": [
+                                {
+                                    "key": "id",
+                                    "value": "{{schoolId}}"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Assign School Admin",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"schoolId\": \"{{schoolId}}\",\n    \"adminUserId\": \"{{userId}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/school/assignSchoolAdmin",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "school", "assignSchoolAdmin"]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Classrooms",
+            "item": [
+                {
+                    "name": "Create Classroom",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"capacity\": 30,\n    \"grade\": \"Grade 5\",\n    \"section\": \"A\",\n    \"academicYear\": \"2023-2024\",\n    \"resources\": [\"Whiteboard\", \"Projector\"],\n    \"schoolId\": \"{{schoolId}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/classroom/createClassroom",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "classroom", "createClassroom"]
+                        }
+                    }
+                },
+                {
+                    "name": "Update Classroom",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"id\": \"{{classroomId}}\",\n    \"capacity\": 35,\n    \"grade\": \"Grade 5\",\n    \"section\": \"B\",\n    \"academicYear\": \"2023-2024\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/classroom/updateClassroom",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "classroom", "updateClassroom"]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Classroom",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/classroom/getClassroom?id={{classroomId}}",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "classroom", "getClassroom"],
+                            "query": [
+                                {
+                                    "key": "id",
+                                    "value": "{{classroomId}}"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Delete Classroom",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/classroom/deleteClassroom?id={{classroomId}}",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "classroom", "deleteClassroom"],
+                            "query": [
+                                {
+                                    "key": "id",
+                                    "value": "{{classroomId}}"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Add Resource",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"id\": \"{{classroomId}}\",\n    \"resource\": \"Interactive Whiteboard\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/classroom/addResource",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "classroom", "addResource"]
+                        }
+                    }
+                },
+                {
+                    "name": "Remove Resource",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"id\": \"{{classroomId}}\",\n    \"resource\": \"Interactive Whiteboard\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/classroom/removeResource",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "classroom", "removeResource"]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Students",
+            "item": [
+                {
+                    "name": "Create Student",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"John Doe\",\n    \"dateOfBirth\": \"2010-01-01\",\n    \"gender\": \"Male\",\n    \"parentName\": \"Jane Doe\",\n    \"parentPhone\": \"+1234567890\",\n    \"email\": \"john@example.com\",\n    \"enrollmentDate\": \"2023-09-01\",\n    \"bloodGroup\": \"A+\",\n    \"emergencyContact\": {\n        \"name\": \"Jane Doe\",\n        \"relation\": \"Mother\",\n        \"phone\": \"+1234567890\"\n    },\n    \"medicalConditions\": [\"Asthma\"],\n    \"classroomId\": \"{{classroomId}}\",\n    \"schoolId\": \"{{schoolId}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/student/createStudent",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "student", "createStudent"]
+                        }
+                    }
+                },
+                {
+                    "name": "Update Student",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"id\": \"{{studentId}}\",\n    \"name\": \"John Smith\",\n    \"email\": \"john.smith@example.com\",\n    \"bloodGroup\": \"B+\",\n    \"medicalConditions\": [\"Asthma\", \"Allergies\"]\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/student/updateStudent",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "student", "updateStudent"]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Student",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/student/getStudent?id={{studentId}}",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "student", "getStudent"],
+                            "query": [
+                                {
+                                    "key": "id",
+                                    "value": "{{studentId}}"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Delete Student",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/student/deleteStudent?id={{studentId}}",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "student", "deleteStudent"],
+                            "query": [
+                                {
+                                    "key": "id",
+                                    "value": "{{studentId}}"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Transfer Student",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"studentId\": \"{{studentId}}\",\n    \"newClassroomId\": \"{{newClassroomId}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/student/transferStudent",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "student", "transferStudent"]
+                        }
+                    }
+                },
+                {
+                    "name": "List Classroom Students",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/student/listClassroomStudents?classroomId={{classroomId}}",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "student", "listClassroomStudents"],
+                            "query": [
+                                {
+                                    "key": "classroomId",
+                                    "value": "{{classroomId}}"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "List School Students",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/student/listSchoolStudents?schoolId={{schoolId}}",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "student", "listSchoolStudents"],
+                            "query": [
+                                {
+                                    "key": "schoolId",
+                                    "value": "{{schoolId}}"
+                                }
+                            ]
+                        }
+                    }
+                }
+            ]
+        }
+    ],
+    "variable": [
+        {
+            "key": "baseUrl",
+            "value": "http://localhost:5111",
+            "type": "string"
+        },
+        {
+            "key": "token",
+            "value": "your_jwt_token_here",
+            "type": "string"
+        },
+        {
+            "key": "longToken",
+            "value": "your_long_jwt_token_here",
+            "type": "string"
+        },
+        {
+            "key": "schoolId",
+            "value": "school_id_here",
+            "type": "string"
+        },
+        {
+            "key": "classroomId",
+            "value": "classroom_id_here",
+            "type": "string"
+        },
+        {
+            "key": "studentId",
+            "value": "student_id_here",
+            "type": "string"
+        },
+        {
+            "key": "userId",
+            "value": "user_id_here",
+            "type": "string"
+        }
+    ]
+} 
