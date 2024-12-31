@@ -1,6 +1,20 @@
 const { nanoid } = require("nanoid")
 
+/**
+ * Manages student-related operations in the school management system.
+ * Handles CRUD operations, student transfers, and listing functionalities.
+ */
 module.exports = class StudentManager {
+    /**
+     * Initializes the StudentManager with required dependencies
+     * @param {Object} params - Dependency injection parameters
+     * @param {Object} params.utils - Utility functions
+     * @param {Object} params.config - System configuration
+     * @param {Object} params.cortex - Core system functions
+     * @param {Object} params.managers - Other manager instances
+     * @param {Object} params.validators - Input validation functions
+     * @param {Object} params.oyster - Data persistence layer
+     */
     constructor({ utils, cache, config, cortex, managers, validators, oyster }) {
         this.utils = utils
         this.config = config
@@ -17,13 +31,19 @@ module.exports = class StudentManager {
             "patch=updateStudent",
             "delete=deleteStudent",
             "get=getStudent",
-            "get=listStudents",
             "post=transferStudent",
             "get=listClassroomStudents",
-            "get=listSchoolStudents"
+            "get=listSchoolStudents",
         ]
     }
 
+    /**
+     * Retrieves user information by userId
+     * @private
+     * @param {Object} params - Function parameters
+     * @param {string} params.userId - The ID of the user to retrieve
+     * @returns {Promise<Object>} User object or error
+     */
     async _getUser({ userId }) {
         const user = await this.oyster.call("get_block", `user:${userId}`)
         if (!user || this.utils.isEmptyObject(user)) {
@@ -32,7 +52,16 @@ module.exports = class StudentManager {
         return user
     }
 
-    async _validatePermission({ userId, action, nodeId = "board.student" }) {
+    /**
+     * Validates user permissions for specific actions
+     * @private
+     * @param {Object} params - Function parameters
+     * @param {string} params.userId - The ID of the user
+     * @param {string} params.action - The action to validate (create, read, update, delete)
+     * @param {string} [params.nodeId] - The node ID for permission check
+     * @returns {Promise<Object>} Validation result
+     */
+    async _validatePermission({ userId, action, nodeId = "board.school.class.student" }) {
         const user = await this._getUser({ userId })
         if (user.error) return user
 
@@ -41,7 +70,7 @@ module.exports = class StudentManager {
         }
 
         const canDoAction = await this.shark.isGranted({
-            layer: "board.student",
+            layer: "board.school.class.student",
             action,
             userId,
             nodeId,
@@ -50,13 +79,32 @@ module.exports = class StudentManager {
         return { error: canDoAction ? undefined : "Permission denied" }
     }
 
-    async createStudent({ 
-        __token, 
-        name, 
-        dateOfBirth, 
-        gender, 
-        parentName, 
-        parentPhone, 
+    /**
+     * Creates a new student record
+     * @param {Object} params - Student creation parameters
+     * @param {Object} params.__token - Authentication token
+     * @param {string} params.name - Student's full name
+     * @param {string} params.dateOfBirth - Student's date of birth
+     * @param {string} params.gender - Student's gender
+     * @param {string} params.parentName - Parent/guardian's name
+     * @param {string} params.parentPhone - Parent/guardian's contact number
+     * @param {string} params.email - Student's email address
+     * @param {string} params.enrollmentDate - Date of enrollment
+     * @param {string} params.bloodGroup - Student's blood group
+     * @param {Object} params.emergencyContact - Emergency contact information
+     * @param {Array} [params.medicalConditions] - List of medical conditions
+     * @param {string} params.classroomId - Assigned classroom ID
+     * @param {string} params.schoolId - School ID
+     * @param {Object} params.res - Response object
+     * @returns {Promise<Object>} Created student object or error
+     */
+    async createStudent({
+        __token,
+        name,
+        dateOfBirth,
+        gender,
+        parentName,
+        parentPhone,
         email,
         enrollmentDate,
         bloodGroup,
@@ -64,7 +112,7 @@ module.exports = class StudentManager {
         medicalConditions,
         classroomId,
         schoolId,
-        res 
+        res,
     }) {
         const { userId } = __token
 
@@ -72,16 +120,10 @@ module.exports = class StudentManager {
         const canCreateStudent = await this._validatePermission({
             userId,
             action: "create",
-            nodeId: `board.school.${schoolId}.student`
         })
 
         if (canCreateStudent.error) {
-            this.responseDispatcher.dispatch(res, {
-                ok: false,
-                code: 403,
-                message: canCreateStudent.error
-            })
-            return { selfHandleResponse: true }
+            return canCreateStudent
         }
 
         // Validate input
@@ -97,27 +139,15 @@ module.exports = class StudentManager {
             emergencyContact,
             medicalConditions,
             classroomId,
-            schoolId
+            schoolId,
         })
         if (validationResult) return validationResult
-
-        // Check if student exists
-        const existingStudent = await this.oyster.call("get_block", `${this.studentPrefix}:${email}`)
-        if (existingStudent && !this.utils.isEmptyObject(existingStudent)) {
-            this.responseDispatcher.dispatch(res, {
-                ok: false,
-                code: 409,
-                message: "Student already exists with this email"
-            })
-            return { selfHandleResponse: true }
-        }
 
         // Create student
         const studentId = nanoid()
         const student = await this.oyster.call("add_block", {
-            _id: `${this.studentPrefix}:${email}`,
+            _id: studentId,
             _label: this.studentPrefix,
-            studentId,
             name,
             dateOfBirth,
             gender,
@@ -131,41 +161,66 @@ module.exports = class StudentManager {
             classroomId,
             schoolId,
             createdAt: Date.now(),
-            createdBy: userId
+            createdBy: userId,
         })
 
         if (student.error) {
+            if (student.error.includes("already exists")) {
+                this.responseDispatcher.dispatch(res, {
+                    code: 409,
+                    message: "Student already exists",
+                })
+                return { selfHandleResponse: true }
+            }
+
             console.error("Failed to create student:", student.error)
             this.responseDispatcher.dispatch(res, {
                 ok: false,
                 code: 500,
-                message: "Failed to create student"
+                message: "Failed to create student",
             })
             return { selfHandleResponse: true }
         }
 
-        // Link student to classroom and school
+        // Link student to classroom and school using proper score format
         await Promise.all([
             this.oyster.call("update_relations", {
                 _id: `classroom:${classroomId}`,
                 add: {
-                    _students: [`${this.studentPrefix}:${email}`]
-                }
+                    _members: [`${student._id}~1`], // Add score of 1 for direct membership
+                },
             }),
             this.oyster.call("update_relations", {
                 _id: `school:${schoolId}`,
                 add: {
-                    _students: [`${this.studentPrefix}:${email}`]
-                }
-            })
+                    _members: [`${student._id}~1`], // Add score of 1 for direct membership
+                },
+            }),
         ])
 
         return { student }
     }
 
-    async updateStudent({ 
-        __token, 
-        id, 
+    /**
+     * Updates an existing student's information
+     * @param {Object} params - Student update parameters
+     * @param {Object} params.__token - Authentication token
+     * @param {string} params.id - Student ID
+     * @param {string} [params.name] - Updated full name
+     * @param {string} [params.dateOfBirth] - Updated date of birth
+     * @param {string} [params.gender] - Updated gender
+     * @param {string} [params.parentName] - Updated parent/guardian name
+     * @param {string} [params.parentPhone] - Updated parent/guardian contact
+     * @param {string} [params.email] - Updated email address
+     * @param {string} [params.bloodGroup] - Updated blood group
+     * @param {Object} [params.emergencyContact] - Updated emergency contact
+     * @param {Array} [params.medicalConditions] - Updated medical conditions
+     * @param {Object} params.res - Response object
+     * @returns {Promise<Object>} Updated student object or error
+     */
+    async updateStudent({
+        __token,
+        id,
         name,
         dateOfBirth,
         gender,
@@ -175,7 +230,7 @@ module.exports = class StudentManager {
         bloodGroup,
         emergencyContact,
         medicalConditions,
-        res 
+        res,
     }) {
         const { userId } = __token
 
@@ -185,7 +240,7 @@ module.exports = class StudentManager {
             this.responseDispatcher.dispatch(res, {
                 ok: false,
                 code: 404,
-                message: "Student not found"
+                message: "Student not found",
             })
             return { selfHandleResponse: true }
         }
@@ -194,14 +249,13 @@ module.exports = class StudentManager {
         const canUpdateStudent = await this._validatePermission({
             userId,
             action: "update",
-            nodeId: `board.school.${student.schoolId}.student.${id}`
         })
 
         if (canUpdateStudent.error) {
             this.responseDispatcher.dispatch(res, {
                 ok: false,
                 code: 403,
-                message: canUpdateStudent.error
+                message: canUpdateStudent.error,
             })
             return { selfHandleResponse: true }
         }
@@ -216,7 +270,7 @@ module.exports = class StudentManager {
             email,
             bloodGroup,
             emergencyContact,
-            medicalConditions
+            medicalConditions,
         })
         if (validationResult) return validationResult
 
@@ -236,12 +290,20 @@ module.exports = class StudentManager {
 
         const updatedStudent = await this.oyster.call("update_block", {
             _id: `${this.studentPrefix}:${id}`,
-            ...updates
+            ...updates,
         })
 
         return { student: updatedStudent }
     }
 
+    /**
+     * Deletes a student record
+     * @param {Object} params - Student deletion parameters
+     * @param {Object} params.__token - Authentication token
+     * @param {string} params.id - Student ID to delete
+     * @param {Object} params.res - Response object
+     * @returns {Promise<Object>} Deletion result
+     */
     async deleteStudent({ __token, id, res }) {
         const { userId } = __token
 
@@ -251,7 +313,7 @@ module.exports = class StudentManager {
             this.responseDispatcher.dispatch(res, {
                 ok: false,
                 code: 404,
-                message: "Student not found"
+                message: "Student not found",
             })
             return { selfHandleResponse: true }
         }
@@ -260,14 +322,13 @@ module.exports = class StudentManager {
         const canDeleteStudent = await this._validatePermission({
             userId,
             action: "delete",
-            nodeId: `board.school.${student.schoolId}.student.${id}`
         })
 
         if (canDeleteStudent.error) {
             this.responseDispatcher.dispatch(res, {
                 ok: false,
                 code: 403,
-                message: canDeleteStudent.error
+                message: canDeleteStudent.error,
             })
             return { selfHandleResponse: true }
         }
@@ -280,20 +341,28 @@ module.exports = class StudentManager {
             this.oyster.call("update_relations", {
                 _id: `classroom:${student.classroomId}`,
                 remove: {
-                    _students: [`${this.studentPrefix}:${id}`]
-                }
+                    _members: [`${this.studentPrefix}:${id}`],
+                },
             }),
             this.oyster.call("update_relations", {
                 _id: `school:${student.schoolId}`,
                 remove: {
-                    _students: [`${this.studentPrefix}:${id}`]
-                }
-            })
+                    _members: [`${this.studentPrefix}:${id}`],
+                },
+            }),
         ])
 
         return { message: "Student deleted successfully" }
     }
 
+    /**
+     * Retrieves a specific student's information
+     * @param {Object} params - Student retrieval parameters
+     * @param {Object} params.__token - Authentication token
+     * @param {string} params.id - Student ID to retrieve
+     * @param {Object} params.res - Response object
+     * @returns {Promise<Object>} Student information or error
+     */
     async getStudent({ __token, id, res }) {
         const { userId } = __token
 
@@ -303,7 +372,7 @@ module.exports = class StudentManager {
             this.responseDispatcher.dispatch(res, {
                 ok: false,
                 code: 404,
-                message: "Student not found"
+                message: "Student not found",
             })
             return { selfHandleResponse: true }
         }
@@ -312,14 +381,13 @@ module.exports = class StudentManager {
         const canReadStudent = await this._validatePermission({
             userId,
             action: "read",
-            nodeId: `board.school.${student.schoolId}.student.${id}`
         })
 
         if (canReadStudent.error) {
             this.responseDispatcher.dispatch(res, {
                 ok: false,
                 code: 403,
-                message: canReadStudent.error
+                message: canReadStudent.error,
             })
             return { selfHandleResponse: true }
         }
@@ -327,35 +395,14 @@ module.exports = class StudentManager {
         return { student }
     }
 
-    async listStudents({ __token, schoolId, res }) {
-        const { userId } = __token
-
-        // Permission check
-        const canReadStudents = await this._validatePermission({
-            userId,
-            action: "read",
-            nodeId: `board.school.${schoolId}.student`
-        })
-
-        if (canReadStudents.error) {
-            this.responseDispatcher.dispatch(res, {
-                ok: false,
-                code: 403,
-                message: canReadStudents.error
-            })
-            return { selfHandleResponse: true }
-        }
-
-        const students = await this.oyster.call("get_blocks", {
-            _label: this.studentPrefix,
-            filter: {
-                schoolId
-            }
-        })
-
-        return { students }
-    }
-
+    /**
+     * Lists all students in a specific classroom
+     * @param {Object} params - Classroom students listing parameters
+     * @param {Object} params.__token - Authentication token
+     * @param {string} params.classroomId - Classroom ID to list students from
+     * @param {Object} params.res - Response object
+     * @returns {Promise<Object>} List of classroom students or error
+     */
     async listClassroomStudents({ __token, classroomId, res }) {
         const { userId } = __token
 
@@ -365,7 +412,7 @@ module.exports = class StudentManager {
             this.responseDispatcher.dispatch(res, {
                 ok: false,
                 code: 404,
-                message: "Classroom not found"
+                message: "Classroom not found",
             })
             return { selfHandleResponse: true }
         }
@@ -374,23 +421,23 @@ module.exports = class StudentManager {
         const canReadStudents = await this._validatePermission({
             userId,
             action: "read",
-            nodeId: `board.school.${classroom.schoolId}.classroom.${classroomId}.student`
         })
 
         if (canReadStudents.error) {
             this.responseDispatcher.dispatch(res, {
                 ok: false,
                 code: 403,
-                message: canReadStudents.error
+                message: canReadStudents.error,
             })
             return { selfHandleResponse: true }
         }
 
         // Get all students for a classroom using relations
         const students = await this.oyster.call("nav_relation", {
-            relation: "_students",
             _id: `classroom:${classroomId}`,
-            withScores: true
+            relation: "_members",
+            label: this.studentPrefix, // Specify we want student members
+            withScores: true,
         })
 
         const studentDetails = await Promise.all(
@@ -400,9 +447,17 @@ module.exports = class StudentManager {
             })
         )
 
-        return { students: studentDetails.filter(s => s !== null) }
+        return { students: studentDetails.filter((s) => s !== null) }
     }
 
+    /**
+     * Lists all students in a specific school
+     * @param {Object} params - School students listing parameters
+     * @param {Object} params.__token - Authentication token
+     * @param {string} params.schoolId - School ID to list students from
+     * @param {Object} params.res - Response object
+     * @returns {Promise<Object>} List of school students or error
+     */
     async listSchoolStudents({ __token, schoolId, res }) {
         const { userId } = __token
 
@@ -410,23 +465,23 @@ module.exports = class StudentManager {
         const canReadStudents = await this._validatePermission({
             userId,
             action: "read",
-            nodeId: `board.school.${schoolId}.student`
         })
 
         if (canReadStudents.error) {
             this.responseDispatcher.dispatch(res, {
                 ok: false,
                 code: 403,
-                message: canReadStudents.error
+                message: canReadStudents.error,
             })
             return { selfHandleResponse: true }
         }
 
         // Get all students for a school using relations
         const students = await this.oyster.call("nav_relation", {
-            relation: "_students",
             _id: `school:${schoolId}`,
-            withScores: true
+            relation: "_members",
+            label: this.studentPrefix, // Specify we want student members
+            withScores: true,
         })
 
         const studentDetails = await Promise.all(
@@ -436,9 +491,18 @@ module.exports = class StudentManager {
             })
         )
 
-        return { students: studentDetails.filter(s => s !== null) }
+        return { students: studentDetails.filter((s) => s !== null) }
     }
 
+    /**
+     * Transfers a student to a different classroom
+     * @param {Object} params - Student transfer parameters
+     * @param {Object} params.__token - Authentication token
+     * @param {string} params.studentId - ID of the student to transfer
+     * @param {string} params.newClassroomId - ID of the destination classroom
+     * @param {Object} params.res - Response object
+     * @returns {Promise<Object>} Transfer result or error
+     */
     async transferStudent({ __token, studentId, newClassroomId, res }) {
         const { userId } = __token
 
@@ -448,7 +512,7 @@ module.exports = class StudentManager {
             this.responseDispatcher.dispatch(res, {
                 ok: false,
                 code: 404,
-                message: "Student not found"
+                message: "Student not found",
             })
             return { selfHandleResponse: true }
         }
@@ -457,14 +521,13 @@ module.exports = class StudentManager {
         const canUpdateStudent = await this._validatePermission({
             userId,
             action: "update",
-            nodeId: `board.school.${student.schoolId}.student.${studentId}`
         })
 
         if (canUpdateStudent.error) {
             this.responseDispatcher.dispatch(res, {
                 ok: false,
                 code: 403,
-                message: canUpdateStudent.error
+                message: canUpdateStudent.error,
             })
             return { selfHandleResponse: true }
         }
@@ -475,7 +538,7 @@ module.exports = class StudentManager {
             this.responseDispatcher.dispatch(res, {
                 ok: false,
                 code: 404,
-                message: "New classroom not found"
+                message: "New classroom not found",
             })
             return { selfHandleResponse: true }
         }
@@ -484,7 +547,7 @@ module.exports = class StudentManager {
             this.responseDispatcher.dispatch(res, {
                 ok: false,
                 code: 400,
-                message: "Cannot transfer student to a classroom in a different school"
+                message: "Cannot transfer student to a classroom in a different school",
             })
             return { selfHandleResponse: true }
         }
@@ -492,10 +555,10 @@ module.exports = class StudentManager {
         // Update student's classroom
         const oldClassroomId = student.classroomId
         await this.oyster.call("update_block", {
-            _id: `${this.studentPrefix}:${studentId}`,
+            _id: `${student._id}`,
             classroomId: newClassroomId,
             updatedAt: Date.now(),
-            updatedBy: userId
+            updatedBy: userId,
         })
 
         // Update classroom relations
@@ -504,18 +567,18 @@ module.exports = class StudentManager {
             this.oyster.call("update_relations", {
                 _id: `classroom:${oldClassroomId}`,
                 remove: {
-                    _students: [`${this.studentPrefix}:${studentId}`]
-                }
+                    _members: [`${student._id}`],
+                },
             }),
             // Add to new classroom
             this.oyster.call("update_relations", {
                 _id: `classroom:${newClassroomId}`,
                 add: {
-                    _students: [`${this.studentPrefix}:${studentId}`]
-                }
-            })
+                    _members: [`${student._id}~1`],
+                },
+            }),
         ])
 
         return { message: "Student transferred successfully" }
     }
-} 
+}

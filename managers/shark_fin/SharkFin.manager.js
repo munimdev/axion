@@ -191,6 +191,9 @@ module.exports = class SharkFin {
             if (layerActionRank >= inqueryActionRank) return true
         }
         /*******************************USER ACCESS*******************************/
+        console.log(
+            `checking access for role ${role} with layer ${layer} action ${action} userId ${userId} nodeId ${nodeId}`
+        )
         if (layerConfig.adminCan && role == "schoolAdmin") {
             const layerAdminActionRank = this._getActionRank({ action: layerConfig.adminCan })
             if (layerAdminActionRank >= inqueryActionRank) return true

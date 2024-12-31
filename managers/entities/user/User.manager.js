@@ -1,5 +1,4 @@
 const bcrypt = require("bcrypt")
-const { nanoid } = require("nanoid")
 
 module.exports = class UserManager {
     constructor({ utils, cache, config, cortex, managers, validators, oyster }) {
@@ -58,13 +57,19 @@ module.exports = class UserManager {
                 const items = [
                     {
                         nodeId: "board.school",
-                        layer: "board.school",
-                        action: "delete",
+                        action: "update",
                     },
                     {
                         nodeId: "board.school.class",
-                        layer: "board.school.class",
-                        action: "read",
+                        action: "config",
+                    },
+                    {
+                        nodeId: "board.school.class.student",
+                        action: "config",
+                    },
+                    {
+                        nodeId: "board.user",
+                        action: "config",
                     },
                 ]
                 for (const item of items) {
@@ -83,24 +88,11 @@ module.exports = class UserManager {
         const validationResult = await this.validators.user.createUser({ username, email, password, role })
         if (validationResult) return validationResult
 
-        // Check if user exists
-        const existingUser = await this.oyster.call("get_block", `${this.userPrefix}:${email}`)
-        if (existingUser && !this.utils.isEmptyObject(existingUser)) {
-            this.responseDispatcher.dispatch(res, {
-                ok: false,
-                code: 409,
-                message: "User already exists",
-            })
-            return { selfHandleResponse: true }
-        }
-
         // Create user
         const hashedPassword = await this._hashPassword(password)
-        const userId = nanoid()
         const user = await this.oyster.call("add_block", {
-            _id: `${this.userPrefix}:${email}`,
+            _id: email,
             _label: this.userPrefix,
-            userId,
             email,
             username,
             password: hashedPassword,
@@ -109,6 +101,14 @@ module.exports = class UserManager {
         })
 
         if (user.error) {
+            if (user.error.includes("already exists")) {
+                this.responseDispatcher.dispatch(res, {
+                    code: 409,
+                    message: "Email already exists",
+                })
+                return { selfHandleResponse: true }
+            }
+
             console.error("Failed to create user:", user.error)
             this.responseDispatcher.dispatch(res, {
                 ok: false,
@@ -118,12 +118,13 @@ module.exports = class UserManager {
             return { selfHandleResponse: true }
         }
 
+        const userId = email
         // Set role-based permissions
-        await this._setPermissions({ userId: email, role })
+        await this._setPermissions({ userId: userId, role })
 
         // Generate tokens
         const longToken = this.tokenManager.genLongToken({
-            userId: email,
+            userId: userId,
             userKey: user.key,
         })
 

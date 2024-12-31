@@ -1,11 +1,6 @@
 module.exports = {
     createClassroom: [
         {
-            model: "shortText",
-            path: "name",
-            required: true,
-        },
-        {
             model: "classCapacity",
             path: "capacity",
             required: true,
@@ -31,20 +26,16 @@ module.exports = {
             default: [],
         },
         {
-            model: "id",
+            type: "String",
             path: "schoolId",
             required: true,
         },
     ],
     updateClassroom: [
         {
-            model: "id",
+            type: "String",
             path: "id",
             required: true,
-        },
-        {
-            model: "shortText",
-            path: "name",
         },
         {
             model: "classCapacity",
@@ -69,28 +60,28 @@ module.exports = {
     ],
     getClassroom: [
         {
-            model: "id",
+            type: "String",
             path: "id",
             required: true,
         },
     ],
     deleteClassroom: [
         {
-            model: "id",
+            type: "String",
             path: "id",
             required: true,
         },
     ],
     listClassroomResources: [
         {
-            model: "id",
+            type: "String",
             path: "id",
             required: true,
         },
     ],
     addResource: [
         {
-            model: "id",
+            type: "String",
             path: "id",
             required: true,
         },
@@ -102,7 +93,7 @@ module.exports = {
     ],
     removeResource: [
         {
-            model: "id",
+            type: "String",
             path: "id",
             required: true,
         },

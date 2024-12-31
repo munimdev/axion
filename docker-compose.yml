@@ -1,0 +1,39 @@
+version: "3.8"
+
+services:
+    app:
+        build: .
+        ports:
+            - "5111:5111"
+        environment:
+            - NODE_ENV=development
+            - SERVICE_NAME=school_management
+            - USER_PORT=5111
+            - REDIS_URI=redis://redis:6379
+            - LONG_TOKEN_SECRET=your_long_token_secret
+            - SHORT_TOKEN_SECRET=your_short_token_secret
+            - NACL_SECRET=your_nacl_secret
+            - OYSTER_REDIS=redis://redis:6379
+            - OYSTER_PREFIX=school_
+        networks:
+            - apps
+        links:
+            - redis
+
+    redis:
+        image: redis/redis-stack:latest
+        ports:
+            - "6379:6379"
+        command: redis-server --save 20 1 --loglevel warning --protected-mode no
+        volumes:
+            - cache:/data/redis
+        networks:
+            - apps
+
+volumes:
+    cache:
+        driver: local
+
+networks:
+    apps:
+        driver: bridge

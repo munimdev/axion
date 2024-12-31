@@ -8,7 +8,7 @@ module.exports = ({ cache, config }) => {
 
         try {
             // Get the current count for this IP
-            const currentCount = await cache.get(key) || 0
+            const currentCount = (await cache.get(key)) || 0
 
             if (currentCount >= MAX_REQUESTS_PER_WINDOW) {
                 return end({
@@ -26,14 +26,14 @@ module.exports = ({ cache, config }) => {
             }
 
             // Add rate limit headers
-            res.setHeader('X-RateLimit-Limit', MAX_REQUESTS_PER_WINDOW)
-            res.setHeader('X-RateLimit-Remaining', MAX_REQUESTS_PER_WINDOW - currentCount - 1)
+            res.setHeader("X-RateLimit-Limit", MAX_REQUESTS_PER_WINDOW)
+            res.setHeader("X-RateLimit-Remaining", MAX_REQUESTS_PER_WINDOW - currentCount - 1)
 
             next()
         } catch (error) {
-            console.error('Rate limiting error:', error)
+            console.error("Rate limiting error:", error)
             // If Redis fails, allow the request but log the error
             next()
         }
     }
-} 
+}

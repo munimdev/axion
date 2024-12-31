@@ -132,6 +132,10 @@ const isChance = (max) => {
     return min == value
 }
 
+const isEmptyObject = (obj) => {
+    return Object.keys(obj).length === 0
+}
+
 module.exports = {
     slugify,
     getDeepValue,
@@ -145,4 +149,5 @@ module.exports = {
     hrTime,
     match,
     isChance,
+    isEmptyObject,
 }

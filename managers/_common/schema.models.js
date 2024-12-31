@@ -116,20 +116,19 @@ module.exports = {
     },
     grade: {
         type: "String",
-        regex: /^([1-9]|1[0-2])$/,  // Grades 1-12
+        regex: /^([1-9]|1[0-2])$/, // Grades 1-12
     },
     section: {
         type: "String",
-        length: { min: 1, max: 2 },
-        regex: /^[A-Z]$/,  // Sections like A, B, C
+        regex: /^[A-Z]$/, // Sections like A, B, C
     },
     academicYear: {
         type: "String",
-        regex: /^\d{4}-\d{4}$/,  // Format: 2023-2024
+        regex: /^\d{4}-\d{4}$/, // Format: 2023-2024
     },
     date: {
         type: "String",
-        regex: /^\d{4}-\d{2}-\d{2}$/,  // Format: YYYY-MM-DD
+        regex: /^\d{4}-\d{2}-\d{2}$/, // Format: YYYY-MM-DD
     },
     gender: {
         type: "String",

@@ -41,14 +41,14 @@ module.exports = {
     ],
     getSchool: [
         {
-            model: "id",
+            type: "String",
             path: "id",
             required: true,
         },
     ],
     deleteSchool: [
         {
-            model: "id",
+            type: "String",
             path: "id",
             required: true,
         },

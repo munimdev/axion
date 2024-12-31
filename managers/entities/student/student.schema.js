@@ -51,12 +51,12 @@ module.exports = {
             default: [],
         },
         {
-            model: "id",
+            type: "String",
             path: "classroomId",
-            required: true,
+            required: false,
         },
         {
-            model: "id",
+            type: "String",
             path: "schoolId",
             required: true,
         },
@@ -101,28 +101,28 @@ module.exports = {
     ],
     getStudent: [
         {
-            model: "id",
+            type: "String",
             path: "id",
             required: true,
         },
     ],
     deleteStudent: [
         {
-            model: "id",
+            type: "String",
             path: "id",
             required: true,
         },
     ],
     transferStudent: [
         {
-            model: "id",
+            type: "String",
             path: "studentId",
             required: true,
         },
         {
-            model: "id",
+            type: "String",
             path: "newClassroomId",
             required: true,
         },
     ],
-} 
+}
